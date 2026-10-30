@@ -7,7 +7,8 @@
     "probe": "tsx scripts/probe.ts",
     "test": "tsx --test src/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "reprep": "tsx scripts/reprep.ts"
+    "reprep": "tsx scripts/reprep.ts",
+    "live-test": "tsx scripts/live-test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.17",

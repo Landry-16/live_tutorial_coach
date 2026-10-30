@@ -4,7 +4,7 @@ import { Coach, COOLDOWN_MS } from "./coach.ts";
 import type { Step, Verdict } from "../../shared/contracts.ts";
 
 const step = (id: number, irreversible = false): Step => ({
-  id, start_s: id * 10, end_s: id * 10 + 10, instruction: `do ${id}`, expected_end_state: "ok",
+  id, start_s: id * 10, end_s: id * 10 + 10, instruction: `do ${id}`, expected_end_state: "ok", reference_s: id * 10 + 9,
   irreversible, timer_s: null, quantities: [], common_mistakes: [],
 });
 const v = (status: Verdict["status"], message = "msg"): Verdict => ({ status, message, object_to_highlight: "bowl" });

@@ -7,6 +7,8 @@ export const StepSchema = z.strictObject({
   end_s: z.number(),
   instruction: z.string(),
   expected_end_state: z.string(),
+  reference_s: z.number(), // best close-up of the expected end state, used as the reference image
+
   irreversible: z.boolean(),
   timer_s: z.number().nullable(),
   quantities: z.array(z.string()),

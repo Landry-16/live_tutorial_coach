@@ -1,0 +1,11 @@
+{
+  "name": "live-tutorial-coach",
+  "private": true,
+  "type": "module",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev": "npm run dev -w server & npm run dev -w web",
+    "probe": "npm run probe -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
+  }
+}

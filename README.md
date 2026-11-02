@@ -1,6 +1,6 @@
 # Live Tutorial Coach
 
-Upload a cooking video, prop your phone up, and get a hands-free coach: it reads each step aloud, plays the matching part of the tutorial at your pace, watches you through the camera, and stops you before a mistake you can't undo.
+Upload any hands-on video tutorial (a recipe, origami, a repair), prop your phone up, and get a hands-free coach: it reads each step aloud, plays the matching part of the tutorial at your pace, watches you through the camera, and stops you before a mistake you can't undo.
 
 Built for the Meta Global AI Developer Hackathon (Oct 26 to Nov 4, 2026) with Muse Spark, SAM 3.1 and Muse Voice Transcribe.
 

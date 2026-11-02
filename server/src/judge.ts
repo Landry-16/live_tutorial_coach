@@ -10,7 +10,7 @@ export async function checkStep(
   frames: string[],
   recent: string[],
 ): Promise<Verdict> {
-  const prompt = `You are a cooking coach watching the user through a phone camera, following a video tutorial.
+  const prompt = `You are a hands-on coach watching the user through a phone camera, following a video tutorial.
 Current step: "${step.instruction}"
 Expected state at the end of the step: "${step.expected_end_state}"
 Common mistakes: ${step.common_mistakes.join("; ") || "none listed"}
@@ -24,7 +24,7 @@ Decide:
 - step_done: the user's state matches the expected end state.
 - unsure: you cannot see the work (hands or camera in the way, nothing in frame).
 message: one short sentence spoken to the user, second person, at most 20 words, actionable. Do not repeat what you already said.
-object_to_highlight: a short noun phrase naming the physical object concerned (like "mixing bowl"), or null.`;
+object_to_highlight: a short noun phrase naming the physical object concerned (like "mixing bowl" or "left flap"), or null.`;
 
   const images = [...(reference ? [reference] : []), ...frames];
   return askJson(VerdictSchema, "verdict", [{
@@ -58,7 +58,7 @@ export async function answer(question: string, tutorial: Tutorial, index: number
     model: MODELS.spark,
     reasoning: { effort: "low" },
     max_output_tokens: 4000,
-    input: `You are a cooking coach. The user is on step ${index + 1} of this tutorial:
+    input: `You are a hands-on coach. The user is on step ${index + 1} of this tutorial:
 ${JSON.stringify(tutorial)}
 What you last told the user, newest last: ${recent.join(" | ") || "nothing yet"}
 The user asks: "${question}"

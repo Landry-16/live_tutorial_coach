@@ -15,7 +15,7 @@ export function Finished({ id, tutorial, stats, onAgain }: { id: string; tutoria
         <div><dt>{stats.interventions}</dt><dd>{stats.interventions === 1 ? "save by the coach" : "saves by the coach"}</dd></div>
       </dl>
       <div className="actions">
-        <button className="btn primary" onClick={onAgain}>Cook it again</button>
+        <button className="btn primary" onClick={onAgain}>Do it again</button>
         <a className="btn" href="#">New tutorial</a>
       </div>
     </main>

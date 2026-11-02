@@ -32,7 +32,7 @@ export function Upload({ onUploaded }: { onUploaded: (id: string) => void }) {
           <em>This one watches you back.</em>
         </h1>
         <p className="lede">
-          Drop a cooking video. Prop your phone up. The coach reads each step aloud, plays the matching part of the video at
+          Drop any hands-on video: a recipe, origami, a repair. Prop your phone up. The coach reads each step aloud, plays the matching part of the video at
           your pace, and stops you before a mistake you can't undo.
         </p>
       </header>
@@ -51,8 +51,8 @@ export function Upload({ onUploaded }: { onUploaded: (id: string) => void }) {
 
       <ol className="how">
         <li><span><b>Upload</b> the tutorial, it gets split into steps.</span></li>
-        <li><span><b>Prop</b> your phone so the camera sees your worktop.</span></li>
-        <li><span><b>Cook.</b> Say "next", "repeat", "done", or ask a question.</span></li>
+        <li><span><b>Prop</b> your phone so the camera sees your hands and your work.</span></li>
+        <li><span><b>Go.</b> Say "next", "repeat", "done", or ask a question.</span></li>
       </ol>
     </main>
   );

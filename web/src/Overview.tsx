@@ -7,7 +7,7 @@ export function Overview({ id, tutorial, onStart }: { id: string; tutorial: Tuto
       <a className="back" href="#">← New tutorial</a>
       <p className="kicker">{tutorial.steps.length} steps</p>
       <h1 className="display">{tutorial.title}</h1>
-      <button className="btn primary start" onClick={onStart}>Start cooking</button>
+      <button className="btn primary start" onClick={onStart}>Start</button>
       <p className="muted">The coach needs your camera and microphone. Nothing is recorded.</p>
 
       <ol className="steps">

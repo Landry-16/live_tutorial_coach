@@ -104,6 +104,23 @@ a { color: var(--saffron); }
 .pill.on_track { color: var(--basil); }
 .pill.deviation { color: var(--tomato); }
 .pill.step_done { color: var(--saffron); }
+.pill.analysing { color: var(--cream); display: flex; align-items: center; gap: 6px; }
+.pill.analysing i { width: 7px; height: 7px; border-radius: 50%; background: var(--saffron); animation: pulse-dot 0.9s ease-in-out infinite; }
+
+/* ---------- Finished ---------- */
+.finished { min-height: 100dvh; max-width: 720px; margin: 0 auto; padding: 40px 16px; display: grid; align-content: center; justify-items: start; gap: 6px; }
+.finished .plate {
+  width: min(62vw, 280px); aspect-ratio: 1; object-fit: cover; border-radius: 50%; justify-self: end;
+  border: 6px solid var(--cream); transform: rotate(6deg); box-shadow: 0 24px 50px #000a; margin-bottom: -12px;
+}
+.finished .display { font-size: clamp(3rem, 14vw, 6rem); }
+.finished .dish { font-family: var(--display); font-size: 1.3rem; color: var(--muted); margin: 0 0 18px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 0 0 24px; }
+.stats div { display: grid; }
+.stats dt { font-family: var(--display); font-weight: 800; font-size: 2.6rem; line-height: 1; color: var(--saffron); }
+.stats dd { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .pill.analysing i, .box, .dot { animation: none; } }
 .your-turn {
   position: absolute; inset: auto 0 0 0; padding: 14px; border: 0; background: linear-gradient(transparent, #000c);
   font-family: var(--display); font-size: 1.3rem; font-weight: 800; text-align: left;

@@ -8,8 +8,11 @@ const FRAME_GAP_MS = 500;
 const HIGHLIGHT_MS = 8000;
 
 type Highlight = { label: string; box: Box | null };
+export type Stats = { minutes: number; interventions: number };
 
-export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial; onExit: () => void }) {
+export function Coach({ id, tutorial, onExit, onFinished }: {
+  id: string; tutorial: Tutorial; onExit: () => void; onFinished: (s: Stats) => void;
+}) {
   const player = useRef<HTMLVideoElement>(null);
   const camera = useRef<HTMLVideoElement>(null);
   const ws = useRef<WebSocket | null>(null);
@@ -23,7 +26,7 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
   const [heard, setHeard] = useState("");
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [waiting, setWaiting] = useState(false);
-  const [finished, setFinished] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [aspect, setAspect] = useState(4 / 3);
 
@@ -34,6 +37,10 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
     const v = new Voice((on) => { if (player.current) player.current.volume = on ? 0.15 : 1; });
     voice.current = v;
     let highlightTimer = 0;
+    let closed = false;
+    let finished = false;
+    let interventions = 0;
+    const startedAt = Date.now();
 
     const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/${id}`);
     socket.binaryType = "arraybuffer";
@@ -50,12 +57,14 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
           setWaiting(false);
           setHighlight(null);
           setLine(null);
+          setAnalysing(false); // a check on the previous step is discarded by the server
           const p = player.current;
           if (p) { p.currentTime = m.step.start_s; void p.play(); }
           break;
         }
         case "say":
           v.say(m.text, m.urgent);
+          if (m.urgent) interventions++;
           if (!m.text.startsWith("Step ")) setLine({ text: m.text, urgent: m.urgent }); // step announcements are already on the card
           break;
         case "highlight":
@@ -63,19 +72,24 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
           clearTimeout(highlightTimer);
           highlightTimer = window.setTimeout(() => setHighlight(null), HIGHLIGHT_MS);
           break;
-        case "verdict": setVerdict({ v: m.verdict, ms: m.ms }); break;
+        case "verdict": setVerdict({ v: m.verdict, ms: m.ms }); setAnalysing(false); break;
         case "heard": setHeard(m.text); break;
-        case "finished": setFinished(true); break;
-        case "error": console.warn(m.message); break;
+        case "finished":
+          finished = true;
+          onFinished({ minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)), interventions });
+          break;
+        case "error": console.warn(m.message); setAnalysing(false); break;
       }
     };
 
     const cleanups: (() => void)[] = [];
-    openCamera(camera.current!).then((stop) => cleanups.push(stop)).catch((e) => setProblem(`Camera: ${e.message}`));
+    // a device that opens after we left must be released right away
+    const keep = (stop: () => void) => (closed ? stop() : cleanups.push(stop));
+    openCamera(camera.current!).then(keep).catch((e) => setProblem(`Camera: ${e.message}`));
     openMic((pcm) => {
       // send silence while the coach talks so it doesn't hear itself, the stream must stay real time
       if (socket.readyState === WebSocket.OPEN) socket.send(v.speaking ? new ArrayBuffer(pcm.byteLength) : pcm);
-    }).then((stop) => cleanups.push(stop)).catch((e) => setProblem(`Microphone: ${e.message}`));
+    }).then(keep).catch((e) => setProblem(`Microphone: ${e.message}`));
 
     const sample = window.setInterval(async () => {
       const cam = camera.current;
@@ -85,13 +99,16 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
         images.push(grabFrame(cam));
         if (i < 2) await new Promise((r) => setTimeout(r, FRAME_GAP_MS));
       }
+      if (socket.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({ type: "frames", images } satisfies ClientMsg));
+      setAnalysing(true);
     }, CHECK_EVERY_MS);
 
     return () => {
+      closed = true;
       clearInterval(sample);
       clearTimeout(highlightTimer);
-      v.stop();
+      if (!finished) v.stop(); // let the last "well done" finish on the end screen
       socket.close(1000);
       cleanups.forEach((f) => f());
     };
@@ -126,14 +143,16 @@ export function Coach({ id, tutorial, onExit }: { id: string; tutorial: Tutorial
               height: `${((highlight.box.y2 - highlight.box.y1) / highlight.box.h) * 100}%`,
             }}><span>{highlight.label}</span></div>
           )}
-          {verdict && <span className={`pill ${verdict.v.status}`}>{verdict.v.status.replace("_", " ")} · {(verdict.ms / 1000).toFixed(1)} s</span>}
+          {analysing
+            ? <span className="pill analysing"><i aria-hidden />Watching</span>
+            : verdict && <span className={`pill ${verdict.v.status}`}>{verdict.v.status.replace("_", " ")} · {(verdict.ms / 1000).toFixed(1)} s</span>}
         </div>
       </section>
 
       <section className="step-card" aria-live="polite">
         <div className="count"><b>{String(index + 1).padStart(2, "0")}</b><span>/{String(total).padStart(2, "0")}</span></div>
         <div className="progress">{tutorial.steps.map((s) => <i key={s.id} className={s.id < index ? "done" : s.id === index ? "now" : ""} />)}</div>
-        {finished ? <h2>Done! Enjoy.</h2> : <h2>{step?.instruction ?? "Getting ready…"}</h2>}
+        <h2>{step?.instruction ?? "Getting ready…"}</h2>
         {step && step.quantities.length > 0 && <p className="chips">{step.quantities.map((q) => <span key={q}>{q}</span>)}</p>}
         {step?.timer_s && <Timer key={step.id} seconds={step.timer_s} onDone={() => voice.current?.say("Time's up!", true)} />}
         {step?.irreversible && <p className="warn">No going back after this one: the coach checks first.</p>}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { TutorialStatus } from "../../shared/contracts.ts";
-import { Coach } from "./Coach.tsx";
+import { Coach, type Stats } from "./Coach.tsx";
+import { Finished } from "./Finished.tsx";
 import { Overview } from "./Overview.tsx";
 import { Upload } from "./Upload.tsx";
 
@@ -19,6 +20,7 @@ export function App() {
 function Tutorial({ id }: { id: string }) {
   const [status, setStatus] = useState<TutorialStatus | null>(null);
   const [cooking, setCooking] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     let stop = false;
@@ -45,8 +47,12 @@ function Tutorial({ id }: { id: string }) {
       </main>
     );
   }
+  if (stats) {
+    return <Finished id={id} tutorial={status.tutorial} stats={stats} onAgain={() => setStats(null)} />;
+  }
   return cooking
-    ? <Coach id={id} tutorial={status.tutorial} onExit={() => setCooking(false)} />
+    ? <Coach id={id} tutorial={status.tutorial} onExit={() => setCooking(false)}
+        onFinished={(s) => { setCooking(false); setStats(s); }} />
     : <Overview id={id} tutorial={status.tutorial} onStart={() => {
         speechSynthesis.speak(new SpeechSynthesisUtterance("")); // mobile only allows speech after a tap
         setCooking(true);

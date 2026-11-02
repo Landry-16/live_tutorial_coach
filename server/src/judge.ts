@@ -53,14 +53,16 @@ export async function locate(label: string, frame: string): Promise<Box | null> 
   return { x1, y1, x2, y2, w, h };
 }
 
-export async function answer(question: string, tutorial: Tutorial, index: number): Promise<string> {
+export async function answer(question: string, tutorial: Tutorial, index: number, recent: string[]): Promise<string> {
   const r = await meta.responses.create({
     model: MODELS.spark,
     reasoning: { effort: "low" },
     max_output_tokens: 4000,
     input: `You are a cooking coach. The user is on step ${index + 1} of this tutorial:
 ${JSON.stringify(tutorial)}
+What you last told the user, newest last: ${recent.join(" | ") || "nothing yet"}
 The user asks: "${question}"
+If they ask how to fix or recover from a mistake, base the fix on that mistake, this step and the tutorial's own quantities and timings.
 Answer in at most two short spoken sentences, no markdown.`,
   });
   return r.output_text.trim();

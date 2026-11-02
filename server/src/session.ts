@@ -81,7 +81,7 @@ export class Session {
     if (cmd) return this.emit(this.coach.onCommand(cmd));
     if (text.trim().split(/\s+/).length < 2) return;
     try {
-      this.emit([{ type: "say", text: await answer(text, this.coach.tutorial, this.coach.index), urgent: false }]);
+      this.emit([{ type: "say", text: await answer(text, this.coach.tutorial, this.coach.index, this.recent), urgent: false }]);
     } catch (e) {
       this.send({ type: "error", message: `answer failed: ${(e as Error).message}` });
     }

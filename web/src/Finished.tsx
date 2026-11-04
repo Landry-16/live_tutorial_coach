@@ -5,9 +5,9 @@ export function Finished({ id, tutorial, stats, onAgain }: { id: string; tutoria
   const last = tutorial.steps.at(-1)!;
   return (
     <main className="finished">
-      <img className="plate" src={`/media/${id}/ref/${last.id}.jpg`} alt="" />
+      <div className="dither plate"><img src={`/media/${id}/ref/${last.id}.jpg`} alt="" /></div>
       <p className="kicker">Tutorial complete</p>
-      <h1 className="display">You made it.</h1>
+      <h1 className="display dot-end">You made it</h1>
       <p className="dish">{tutorial.title}</p>
       <dl className="stats">
         <div><dt>{tutorial.steps.length}</dt><dd>steps</dd></div>

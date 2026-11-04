@@ -63,7 +63,7 @@ function Preparing({ stage }: { stage: string }) {
   return (
     <main className="center preparing">
       <div className="pot" aria-hidden><span /><span /><span /></div>
-      <h1 className="display">Reading your tutorial</h1>
+      <h1 className="display dot-end">Reading your tutorial</h1>
       <p className="stage">{stage}…</p>
       <p className="muted">About a minute per 5 minutes of video. Keep this page open.</p>
     </main>

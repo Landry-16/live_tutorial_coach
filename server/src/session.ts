@@ -68,10 +68,11 @@ export class Session {
       const verdict = await checkStep(step, this.coach.nextStep, ref, frames, this.recent, progress);
       if (this.coach.index !== index) return; // the user moved on meanwhile
       const msgs = this.coach.onVerdict(verdict, Date.now(), Math.round(performance.now() - t0));
+      const after = this.coach.index; // onVerdict may auto-advance, its step messages must still go out
       for (const m of msgs) {
         if (m.type === "highlight") m.box = await locate(m.label, frames.at(-1)!).catch(() => null);
       }
-      if (this.coach.index !== index) return;
+      if (this.coach.index !== after) return; // the user moved on during SAM
       this.emit(msgs);
     } catch (e) {
       this.send({ type: "error", message: `check failed: ${(e as Error).message}` });

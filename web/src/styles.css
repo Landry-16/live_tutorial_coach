@@ -94,6 +94,7 @@ a { color: var(--saffron); }
 .camera video { object-fit: fill; } /* the box keeps the camera ratio, so fill does not distort */
 .focus-camera .camera { position: relative; right: auto; bottom: auto; width: min(100%, calc(62vh * var(--ar))); max-height: none; margin: 0 auto; transform: none; border-color: var(--tomato); }
 .focus-camera .player { position: absolute; right: 10px; bottom: -30px; width: 30%; z-index: 3; transform: rotate(-2deg); border: 3px solid var(--cream); }
+.focus-camera .your-turn { display: none; }
 .box {
   position: absolute; border: 3px solid var(--tomato); border-radius: 10px; box-shadow: 0 0 0 9999px #0006;
   animation: pulse 1s ease-in-out infinite alternate;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Logo } from "./Logo.tsx";
 
 export function Upload({ onUploaded }: { onUploaded: (id: string) => void }) {
   const [busy, setBusy] = useState(false);
@@ -26,16 +27,20 @@ export function Upload({ onUploaded }: { onUploaded: (id: string) => void }) {
   return (
     <main className="home">
       <header className="hero">
-        <p className="kicker">Live Tutorial Coach</p>
-        <h1 className="display">
-          Tutorials only go one way.<br />
-          <em>This one watches you back.</em>
-        </h1>
+        <div className="brand"><Logo /> Live Tutorial Coach</div>
+        <h1 className="display dot-end">Coach</h1>
+        <p className="tagline">Follow any tutorial.<span>It watches you back.</span></p>
         <p className="lede">
-          Drop any hands-on video: a recipe, origami, a repair. Prop your phone up. The coach reads each step aloud, plays the matching part of the video at
-          your pace, and stops you before a mistake you can't undo.
+          Drop any hands-on video: a repair, a recipe, a first-aid move. Prop your phone up. The coach reads each step aloud, plays the matching part of the
+          video at your pace, and stops you before a mistake you can't undo.
         </p>
       </header>
+
+      <div className="collage" aria-hidden>
+        <div className="dither c1"><img src="/hero/lab.jpg" alt="" /></div>
+        <div className="dither c2"><img src="/hero/mechanics.jpg" alt="" /></div>
+        <div className="dither c3"><img src="/hero/pov_origami.jpg" alt="" /></div>
+      </div>
 
       <label
         className={`drop ${drag ? "drag" : ""} ${busy ? "busy" : ""}`}
@@ -54,6 +59,7 @@ export function Upload({ onUploaded }: { onUploaded: (id: string) => void }) {
         <li><span><b>Prop</b> your phone so the camera sees your hands and your work.</span></li>
         <li><span><b>Go.</b> Say "next", "repeat", "done", or ask a question.</span></li>
       </ol>
+      <p className="foot">Muse Spark · SAM 3.1 · Muse Voice Transcribe</p>
     </main>
   );
 }

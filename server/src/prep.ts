@@ -57,7 +57,7 @@ For each step:
 - instruction: what to do, imperative, one or two short sentences, spoken aloud by a coach.
 - expected_end_state: what the result looks like when the step is done, visible on camera ("egg whites stiff and glossy", "paper folded in half along the long side").
 - reference_s: the moment inside the step where the result is best visible in close-up (the work itself, not the presenter's face), in seconds.
-- irreversible: true only when a mistake made at this step cannot be fixed afterwards (adding an ingredient to a mix, cutting to size, gluing, a sharp crease that will show). Most steps are false; preparing, arranging, mixing or waiting are false.
+- irreversible: true only when a mistake made at this step cannot be fixed afterwards (adding an ingredient to a mix, cutting to size, gluing, a sharp crease that will show, powering electronics on with a part missing or a connector loose, forcing a fragile part). Most steps are false; preparing, arranging, mixing, unscrewing or waiting are false.
 - timer_s: waiting time in seconds if the step has one, else null.
 - quantities: amounts or sizes mentioned for this step ("200 g flour", "a 15 cm square"), else [].
 - common_mistakes: 1 to 3 mistakes a beginner makes at this step, visible on camera.

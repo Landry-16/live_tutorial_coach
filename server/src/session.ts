@@ -22,6 +22,7 @@ export class Session {
   private checking = false;
   private recent: string[] = [];
   private asr: AsrStream;
+  private lastFrame: string | null = null;
 
   constructor(private readonly id: string, tutorial: Tutorial, private readonly send: (m: ServerMsg) => void) {
     this.coach = new Coach(tutorial);
@@ -34,7 +35,7 @@ export class Session {
 
   onMessage(msg: ClientMsg) {
     if (msg.type === "start") this.emit(this.coach.start());
-    else if (msg.type === "command") this.emit(this.coach.onCommand(msg.command));
+    else if (msg.type === "command") void this.command(msg.command);
     else if (msg.type === "frames") void this.check(msg.images);
   }
 
@@ -56,8 +57,32 @@ export class Session {
     }
   }
 
+  // A command answers at once; a highlight it carries follows as soon as SAM has boxed it on the latest frame.
+  private async command(cmd: Command) {
+    const msgs = this.coach.onCommand(cmd);
+    this.emit(msgs.filter((m) => m.type !== "highlight"));
+    const index = this.coach.index;
+    const lights = msgs.filter((m) => m.type === "highlight");
+    if (!lights.length || !this.lastFrame) return;
+    await this.boxes(lights, this.lastFrame);
+    if (this.coach.index === index) this.emit(lights);
+  }
+
+  private async boxes(msgs: ServerMsg[], frame: string) {
+    for (const m of msgs) {
+      if (m.type !== "highlight") continue;
+      const names = m.label.split("|").map((s) => s.trim()).filter(Boolean);
+      m.label = names[0] ?? m.label;
+      for (const name of names) { // the first name SAM can find wins
+        m.box = await locate(name, frame).catch(() => null);
+        if (m.box) { m.label = name; break; }
+      }
+    }
+  }
+
   private async check(frames: string[]) {
     if (this.checking || !frames.length) return; // drop frames while a check is running
+    this.lastFrame = frames.at(-1)!;
     this.checking = true;
     const index = this.coach.index;
     const t0 = performance.now();
@@ -69,15 +94,7 @@ export class Session {
       if (this.coach.index !== index) return; // the user moved on meanwhile
       const msgs = this.coach.onVerdict(verdict, Date.now(), Math.round(performance.now() - t0));
       const after = this.coach.index; // onVerdict may auto-advance, its step messages must still go out
-      for (const m of msgs) {
-        if (m.type !== "highlight") continue;
-        const names = m.label.split("|").map((s) => s.trim()).filter(Boolean);
-        m.label = names[0] ?? m.label;
-        for (const name of names) { // the first name SAM can find wins
-          m.box = await locate(name, frames.at(-1)!).catch(() => null);
-          if (m.box) { m.label = name; break; }
-        }
-      }
+      await this.boxes(msgs, frames.at(-1)!);
       if (this.coach.index !== after) return; // the user moved on during SAM
       this.emit(msgs);
     } catch (e) {
@@ -90,7 +107,7 @@ export class Session {
   private async onVoice(text: string) {
     this.send({ type: "heard", text, final: true });
     const cmd = parseCommand(text);
-    if (cmd) return this.emit(this.coach.onCommand(cmd));
+    if (cmd) return this.command(cmd);
     if (text.trim().split(/\s+/).length < 2) return;
     try {
       this.emit([{ type: "say", text: await answer(text, this.coach.tutorial, this.coach.index, this.recent), urgent: false }]);

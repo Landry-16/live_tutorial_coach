@@ -164,7 +164,9 @@ export class Coach {
       const why = v.status === "deviation" ? v.message
         : v.status === "unsure" ? "I can't see your work to check it."
         : `This step isn't finished yet. ${v.message}`;
-      return [{ type: "say", text: `Wait, the next step can't be undone. ${why} Say next again to continue anyway.`, urgent: true }];
+      const out: ServerMsg[] = [{ type: "say", text: `Wait, the next step can't be undone. ${why} Say next again to continue anyway.`, urgent: true }];
+      if (v.object_to_highlight) out.push({ type: "highlight", label: v.object_to_highlight, box: null });
+      return out;
     }
     if (!this.nextStep) return [{ type: "say", text: "That was the last step. Well done!", urgent: false }, { type: "finished" }];
     return this.enterStep(this.index + 1);

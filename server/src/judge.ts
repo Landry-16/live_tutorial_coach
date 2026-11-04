@@ -51,7 +51,7 @@ ${progress.length ? `Prior progress observed on this step: ${progress.join(" | "
 
 Decide:
 - on_track: the user is actively working on this step and nothing is wrong yet. Normal hand movements, holding tools, stirring, folding, or manipulating materials are normal work-in-progress, NEVER a deviation.
-- deviation: you clearly see an actual mistake for this step (wrong action, wrong amount, wrong direction, or a common mistake listed above). Do NOT guess. Hands or tools temporarily in the way are NOT a deviation.
+- deviation: you clearly see an actual mistake for this step (wrong action, wrong amount, wrong direction, or a common mistake listed above). Do NOT guess. Hands or tools temporarily in the way are NOT a deviation. A result this step's instruction would not produce (a diagonal fold when the step says edge to edge, a different shape, the wrong ingredient) IS a deviation, even while the hands are still moving.
 - step_done: the user has finished the action and the resulting state clearly matches the expected end state (compare with the reference image if present). If the user is still actively performing the action (hands manipulating tools or materials), choose on_track. Do NOT declare step_done on partial or ambiguous work.
 - unsure: the camera is pointed away or view of the work is completely obstructed so state cannot be determined. If hands are simply doing normal work, choose on_track instead of unsure. Do NOT tell the user to move their hands when they are actively working.
 message: one short sentence spoken to the user, second person, at most 20 words, actionable. If unsure due to temporary obstruction, stay encouraging or quiet; do not repeatedly tell the user to move their hands. Do not repeat what you already said.

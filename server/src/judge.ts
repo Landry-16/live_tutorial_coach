@@ -80,7 +80,8 @@ export async function locate(label: string, frame: string): Promise<Box | null> 
     ] }],
   });
   const m = BOX.exec(r.output_text);
-  if (!m) return null;
+  const noun = label.trim().split(/\s+/).at(-1)!;
+  if (!m) return noun !== label.trim() ? locate(noun, frame) : null; // "square paper" -> "paper"
   const [x1, y1, x2, y2, w, h] = m.slice(1).map(Number);
   return { x1, y1, x2, y2, w, h };
 }

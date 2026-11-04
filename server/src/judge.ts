@@ -3,12 +3,42 @@ import { VerdictSchema, type Box, type Step, type Tutorial, type Verdict } from 
 import { askJson } from "./llm.ts";
 import { meta, MODELS } from "./meta.ts";
 
+export const OCCLUSION_RE = /\b(move (your |the )?hands?|hands? (are |in the |blocking|covering)|cannot see|can't see|unclear view|obstructing|obstruction|in the way|block(ing|s) the view)\b/i;
+
+export function isOcclusionMessage(msg: string): boolean {
+  return OCCLUSION_RE.test(msg);
+}
+
+export function cleanVerdict(raw: Verdict): Verdict {
+  // If the model reported a deviation purely due to hands or temporary obstruction,
+  // sanitize it to 'unsure' so normal hand movement is never treated as a user error.
+  if (raw.status === "deviation" && isOcclusionMessage(raw.message)) {
+    return {
+      status: "unsure",
+      message: "Work is temporarily obscured; continuing observation.",
+      object_to_highlight: null,
+    };
+  }
+
+  // If status is unsure and message is a naggy visibility command, soften it
+  if (raw.status === "unsure" && isOcclusionMessage(raw.message)) {
+    return {
+      ...raw,
+      message: "Work is temporarily occluded.",
+      object_to_highlight: null,
+    };
+  }
+
+  return raw;
+}
+
 export async function checkStep(
   step: Step,
   next: Step | undefined,
   reference: string | null,
   frames: string[],
   recent: string[],
+  progress: string[] = [],
 ): Promise<Verdict> {
   const prompt = `You are a hands-on coach watching the user through a phone camera, following a video tutorial.
 Current step: "${step.instruction}"
@@ -17,23 +47,25 @@ Common mistakes: ${step.common_mistakes.join("; ") || "none listed"}
 ${next?.irreversible ? `The next step cannot be undone: "${next.instruction}".` : ""}
 ${reference ? "The FIRST image is the tutorial at the end of this step. The other images are the user's camera, oldest first." : "The images are the user's camera, oldest first."}
 Things you already told the user: ${recent.join(" | ") || "nothing yet"}
+${progress.length ? `Prior progress observed on this step: ${progress.join(" | ")}. Note: Prior progress indicates work underway, but does not prove current completion—verify current state in the images.` : ""}
 
 Decide:
-- on_track: the user is doing this step and nothing is wrong yet.
-- deviation: you clearly see a mistake for this step (wrong action, wrong amount, wrong state, a common mistake). Do not guess.
-- step_done: the user's state matches the expected end state.
-- unsure: you cannot see the work (hands or camera in the way, nothing in frame).
-message: one short sentence spoken to the user, second person, at most 20 words, actionable. Do not repeat what you already said.
+- on_track: the user is actively working on this step and nothing is wrong yet. Normal hand movements, holding tools, stirring, folding, or manipulating materials are normal work-in-progress, NEVER a deviation.
+- deviation: you clearly see an actual mistake for this step (wrong action, wrong amount, wrong direction, or a common mistake listed above). Do NOT guess. Hands or tools temporarily in the way are NOT a deviation.
+- step_done: the user has finished the action and the resulting state clearly matches the expected end state (compare with the reference image if present). If the user is still actively performing the action (hands manipulating tools or materials), choose on_track. Do NOT declare step_done on partial or ambiguous work.
+- unsure: the camera is pointed away or view of the work is completely obstructed so state cannot be determined. If hands are simply doing normal work, choose on_track instead of unsure. Do NOT tell the user to move their hands when they are actively working.
+message: one short sentence spoken to the user, second person, at most 20 words, actionable. If unsure due to temporary obstruction, stay encouraging or quiet; do not repeatedly tell the user to move their hands. Do not repeat what you already said.
 object_to_highlight: a short noun phrase naming the physical object concerned (like "mixing bowl" or "left flap"), or null.`;
 
   const images = [...(reference ? [reference] : []), ...frames];
-  return askJson(VerdictSchema, "verdict", [{
+  const verdict = await askJson(VerdictSchema, "verdict", [{
     role: "user",
     content: [
       { type: "input_text", text: prompt },
       ...images.map((image_url) => ({ type: "input_image" as const, image_url, detail: "auto" as const })),
     ],
   }]);
+  return cleanVerdict(verdict);
 }
 
 const BOX = /<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)/;

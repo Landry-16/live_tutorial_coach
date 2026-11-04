@@ -70,7 +70,13 @@ export class Session {
       const msgs = this.coach.onVerdict(verdict, Date.now(), Math.round(performance.now() - t0));
       const after = this.coach.index; // onVerdict may auto-advance, its step messages must still go out
       for (const m of msgs) {
-        if (m.type === "highlight") m.box = await locate(m.label, frames.at(-1)!).catch(() => null);
+        if (m.type !== "highlight") continue;
+        const names = m.label.split("|").map((s) => s.trim()).filter(Boolean);
+        m.label = names[0] ?? m.label;
+        for (const name of names) { // the first name SAM can find wins
+          m.box = await locate(name, frames.at(-1)!).catch(() => null);
+          if (m.box) { m.label = name; break; }
+        }
       }
       if (this.coach.index !== after) return; // the user moved on during SAM
       this.emit(msgs);

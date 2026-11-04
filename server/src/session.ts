@@ -48,6 +48,9 @@ export class Session {
 
   private emit(msgs: ServerMsg[]) {
     for (const m of msgs) {
+      if (m.type === "step") {
+        this.recent = [];
+      }
       if (m.type === "say") this.recent = [...this.recent, m.text].slice(-3);
       this.send(m);
     }
@@ -61,12 +64,14 @@ export class Session {
     try {
       const step = this.coach.step;
       const ref = await reference(this.id, step.id);
-      const verdict = await checkStep(step, this.coach.nextStep, ref, frames, this.recent);
+      const progress = this.coach.getProgressSummary();
+      const verdict = await checkStep(step, this.coach.nextStep, ref, frames, this.recent, progress);
       if (this.coach.index !== index) return; // the user moved on meanwhile
       const msgs = this.coach.onVerdict(verdict, Date.now(), Math.round(performance.now() - t0));
       for (const m of msgs) {
         if (m.type === "highlight") m.box = await locate(m.label, frames.at(-1)!).catch(() => null);
       }
+      if (this.coach.index !== index) return;
       this.emit(msgs);
     } catch (e) {
       this.send({ type: "error", message: `check failed: ${(e as Error).message}` });

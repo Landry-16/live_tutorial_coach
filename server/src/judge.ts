@@ -68,7 +68,7 @@ object_to_highlight: up to 3 names of the physical thing concerned, separated by
   return cleanVerdict(verdict);
 }
 
-const BOX = /<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)/;
+const BOX = /<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)/g;
 
 // shortcut: keeps only the first box, no mask; decode masks with @meta-sam/parser if we want outlines.
 export async function locate(label: string, frame: string): Promise<Box | null> {
@@ -79,10 +79,12 @@ export async function locate(label: string, frame: string): Promise<Box | null> 
       { type: "input_image", image_url: frame, detail: "auto" },
     ] }],
   });
-  const m = BOX.exec(r.output_text);
+  // SAM returns one box per instance; the largest is the thing itself, not a sliver at the edge
+  const boxes = [...r.output_text.matchAll(BOX)].map((m) => m.slice(1).map(Number));
   const noun = label.trim().split(/\s+/).at(-1)!;
-  if (!m) return noun !== label.trim() ? locate(noun, frame) : null; // "square paper" -> "paper"
-  const [x1, y1, x2, y2, w, h] = m.slice(1).map(Number);
+  if (!boxes.length) return noun !== label.trim() ? locate(noun, frame) : null; // "square paper" -> "paper"
+  const area = ([x1, y1, x2, y2]: number[]) => (x2 - x1) * (y2 - y1);
+  const [x1, y1, x2, y2, w, h] = boxes.reduce((a, b) => (area(b) > area(a) ? b : a));
   return { x1, y1, x2, y2, w, h };
 }
 

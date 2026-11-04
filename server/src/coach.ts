@@ -157,15 +157,14 @@ export class Coach {
     if (cmd === "repeat") return this.enterStep(this.index);
     if (cmd === "back") return this.enterStep(Math.max(0, this.index - 1));
 
-    // Point of no return: the next step cannot be undone and the last check saw a problem.
-    const risky = this.nextStep?.irreversible && this.lastVerdict?.status === "deviation";
-    if (risky && !this.overrideArmed) {
+    // Point of no return: the next step cannot be undone and the camera has not seen this one finished.
+    const v = this.lastVerdict;
+    if (this.nextStep?.irreversible && v && v.status !== "step_done" && !this.overrideArmed) {
       this.overrideArmed = true;
-      return [{
-        type: "say",
-        text: `Wait, the next step can't be undone. ${this.lastVerdict!.message} Say next again to continue anyway.`,
-        urgent: true,
-      }];
+      const why = v.status === "deviation" ? v.message
+        : v.status === "unsure" ? "I can't see your work to check it."
+        : `This step isn't finished yet. ${v.message}`;
+      return [{ type: "say", text: `Wait, the next step can't be undone. ${why} Say next again to continue anyway.`, urgent: true }];
     }
     if (!this.nextStep) return [{ type: "say", text: "That was the last step. Well done!", urgent: false }, { type: "finished" }];
     return this.enterStep(this.index + 1);

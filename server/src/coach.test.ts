@@ -58,6 +58,21 @@ test("guards an irreversible next step after a deviation", () => {
   assert.equal(c.index, 1);
 });
 
+test("guards an irreversible next step until the camera saw this one finished", () => {
+  const c = new Coach({ title: "t", steps: [step(0), step(1, true)] });
+  c.onVerdict(v("on_track", "fan not seated yet"), 0, 1);
+  const warn = c.onCommand("next");
+  assert.equal(c.index, 0);
+  assert.match((warn[0] as { text: string }).text, /isn't finished yet. fan not seated yet/);
+  c.onCommand("next");
+  assert.equal(c.index, 1);
+
+  const d = new Coach({ title: "t", steps: [step(0), step(1, true)] }, { autoAdvance: false });
+  d.onVerdict(v("step_done", "fan seated"), 0, 1);
+  d.onCommand("next");
+  assert.equal(d.index, 1, "a finished step goes straight on");
+});
+
 test("finishes after the last step, back and repeat stay in range", () => {
   const c = new Coach({ title: "t", steps: [step(0)] });
   c.onCommand("back");

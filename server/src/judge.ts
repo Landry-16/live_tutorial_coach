@@ -55,7 +55,7 @@ Decide:
 - step_done: the user has finished the action and the resulting state clearly matches the expected end state (compare with the reference image if present). If the user is still actively performing the action (hands manipulating tools or materials), choose on_track. Do NOT declare step_done on partial or ambiguous work.
 - unsure: the camera is pointed away or view of the work is completely obstructed so state cannot be determined. If hands are simply doing normal work, choose on_track instead of unsure. Do NOT tell the user to move their hands when they are actively working.
 message: one short sentence spoken to the user, second person, at most 20 words, actionable. If unsure due to temporary obstruction, stay encouraging or quiet; do not repeatedly tell the user to move their hands. Do not repeat what you already said.
-object_to_highlight: a short noun phrase naming the physical object concerned (like "mixing bowl" or "left flap"), or null.`;
+object_to_highlight: the physical thing concerned, a short noun phrase you could point at (like "mixing bowl", "left flap", "paper"), never an action like "diagonal fold"; or null.`;
 
   const images = [...(reference ? [reference] : []), ...frames];
   const verdict = await askJson(VerdictSchema, "verdict", [{

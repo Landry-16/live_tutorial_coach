@@ -44,8 +44,7 @@ async function transcribe(video: string, dir: string, total: number): Promise<Tu
   return turns;
 }
 
-async function findSteps(video: string, turns: Turn[], total: number): Promise<Tutorial> {
-  const file = await meta.files.create({ file: createReadStream(video), purpose: "user_data" });
+async function findStepsWithFile(fileId: string, turns: Turn[], total: number): Promise<Tutorial> {
   const narration = turns.length
     ? turns.map((t) => `[${t.start_s.toFixed(1)}s - ${t.end_s.toFixed(1)}s] ${t.text}`).join("\n")
     : "(no narration, rely on the visuals)";
@@ -64,26 +63,47 @@ For each step:
 - common_mistakes: 1 to 3 mistakes a beginner makes at this step, visible on camera.
 title: the name of what is being made.
 Write in English. id starts at 0.`;
-  try {
-    return await askJson(TutorialSchema, "tutorial", [{
-      role: "user",
-      content: [{ type: "input_text", text: prompt }, { type: "input_file", file_id: file.id }],
-    }], "low");
-  } finally {
-    await meta.files.delete(file.id).catch(() => {});
-  }
+
+  return askJson(TutorialSchema, "tutorial", [{
+    role: "user",
+    content: [{ type: "input_text", text: prompt }, { type: "input_file", file_id: fileId }],
+  }], "low");
 }
 
 export async function prepare(id: string, setStatus: (s: TutorialStatus) => void): Promise<void> {
   const dir = tutorialDir(id);
   const video = `${dir}/tutorial.mp4`;
+  let uploadedFileId: string | null = null;
   try {
     const total = await duration(video);
-    setStatus({ state: "processing", stage: "Listening to the narration" });
+    setStatus({ state: "processing", stage: "Listening to the narration and preparing video" });
     const cached = `${dir}/narration.json`; // reused when re-running prep on the same video
-    const turns: Turn[] = existsSync(cached) ? JSON.parse(await readFile(cached, "utf8")) : await transcribe(video, dir, total);
+
+    // Parallelize audio transcription and Meta Files API video upload
+    const uploadPromise = meta.files.create({ file: createReadStream(video), purpose: "user_data" })
+      .then((f) => { uploadedFileId = f.id; return f; });
+
+    const transcribePromise = existsSync(cached)
+      ? readFile(cached, "utf8").then((c) => JSON.parse(c) as Turn[])
+      : transcribe(video, dir, total);
+
+    let turns: Turn[];
+    let file: { id: string };
+    try {
+      [turns, file] = await Promise.all([transcribePromise, uploadPromise]);
+    } catch (err) {
+      // If transcription failed while upload was in flight, wait for upload to settle and capture ID for cleanup
+      try {
+        const uploaded = await uploadPromise;
+        uploadedFileId = uploaded.id;
+      } catch {
+        // upload itself failed, nothing to clean up
+      }
+      throw err;
+    }
+
     setStatus({ state: "processing", stage: "Watching the tutorial and finding the steps" });
-    const raw = await findSteps(video, turns, total);
+    const raw = await findStepsWithFile(file.id, turns, total);
     const steps = raw.steps
       .sort((a, b) => a.start_s - b.start_s)
       .map((s, i) => {
@@ -96,15 +116,22 @@ export async function prepare(id: string, setStatus: (s: TutorialStatus) => void
 
     setStatus({ state: "processing", stage: "Taking a reference picture of each step" });
     await mkdir(`${dir}/ref`, { recursive: true });
-    for (const s of steps) {
-      await run("ffmpeg", ["-loglevel", "error", "-y", "-ss", s.reference_s.toFixed(2), "-i", video, "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "5", `${dir}/ref/${s.id}.jpg`]);
-    }
+    // Parallelize reference frame extraction
+    await Promise.all(steps.map((s) =>
+      run("ffmpeg", ["-loglevel", "error", "-y", "-ss", s.reference_s.toFixed(2), "-i", video, "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "5", `${dir}/ref/${s.id}.jpg`])
+    ));
+
     await writeFile(`${dir}/narration.json`, JSON.stringify(turns, null, 2));
     await writeFile(`${dir}/steps.json`, JSON.stringify(tutorial, null, 2));
     setStatus({ state: "ready", tutorial });
   } catch (e) {
     console.error(`prep ${id} failed`, e);
     setStatus({ state: "failed", error: (e as Error).message });
+  } finally {
+    const fileId = uploadedFileId as string | null;
+    if (fileId) {
+      await meta.files.delete(fileId).catch(() => {});
+    }
   }
 }
 
